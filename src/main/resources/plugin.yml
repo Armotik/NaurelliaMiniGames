@@ -1,0 +1,23 @@
+name: NaurelliaMiniGames
+version: '${project.version}'
+main: fr.armotik.naurelliaminigames.NaurelliaMiniGames
+api-version: '1.20'
+depend: [Louise]
+commands:
+  init:
+    description: Initialize a game
+    permission: naurellia.staff.mod
+  start:
+    description: Start a game
+    permission: naurellia.staff.mod
+  join:
+    description: Join a game
+  leave:
+    description: Leave a game
+  stop:
+    description: Stop a game
+    permission: naurellia.staff.mod
+  werewolf:
+    description: Werewolf command
+    aliases:
+      - ww
