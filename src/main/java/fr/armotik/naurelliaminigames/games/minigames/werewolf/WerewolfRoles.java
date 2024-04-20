@@ -14,7 +14,7 @@ public enum WerewolfRoles {
     ANCIENT("Ancient", "The ancient one has two lives against the night. When he should be killed by the werewolves, he loses one without being warned. In the morning, he wakes up with the others, but reveals his card (the second time he is attacked by werewolves, he dies normally). If the ancient is expelled from the village by the villagers' vote, he dies directly and all the villagers' roles lose their powers.", Team.VILLAGE, null),
     VILLAGE_IDIOT("Village idiot", "If designated by the village vote, he does not die, and only once in the game, but only loses his ability to vote (he can take part in debates).", Team.VILLAGE, null),
     BEAST_HUNTER("Beast Hunter", "At night you can place a trap on a player which will become active the following night. This player cannot be killed at night. If the player is attacked by a werewolf, the weakest werewolf will die.", Team.VILLAGE, 3),
-    HEAD_HUNTER("Head Hunter", "At the start of the game you are asssigned a target. Your goal is to get your target lynched before you die in order to win. If your target dies another way, you will win with the village but remain a headhunter", Team.SOLO, null),
+    HEAD_HUNTER("Head Hunter", "At the start of the game you are assigned a target. Your goal is to get your target lynched before you die in order to win. If your target dies another way, you will win with the village but remain a headhunter", Team.SOLO, null),
     WOLF_SEER("Wolf Seer", "Each night you can select a player to discover his role. If you are the last werewolf, you lost you ability and become a regular werewolf", Team.WEREWOLF, 4),
     ;
 

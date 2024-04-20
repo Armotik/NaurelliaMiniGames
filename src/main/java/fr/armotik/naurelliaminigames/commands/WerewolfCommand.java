@@ -13,6 +13,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class WerewolfCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
@@ -53,25 +57,46 @@ public class WerewolfCommand implements CommandExecutor {
             return true;
         }
 
+        if (werewolf.isSpectator(player)) {
+            player.sendMessage(Louise.PREFIX + "§cYou're a spectator ! You are dead and can't participate in the game.");
+            return true;
+        }
+
         //
         // Pass command
-        // Night only
+        // Anytime
         //
         if (strings[0].equalsIgnoreCase("pass") && werewolf.getPlayersRoles().get(player).getPriority() != null) {
 
-            if (werewolf.isDayTime()) return false;
+            if (strings[1].equalsIgnoreCase("day")) {
 
-            // Beast Hunter trap
-            if (werewolf.getPlayersRoles().get(player) == WerewolfRoles.BEAST_HUNTER && !werewolf.getTrappedPlayers().isEmpty()) {
+                // TODO: Implement pass day command
 
-                werewolf.beastHunterActivateTrap();
-
-                player.sendMessage(Louise.PREFIX + "§aThe trap has been activated !");
+                return true;
             }
 
-            werewolf.sleepPlayer(player);
+            if (strings[1].equalsIgnoreCase("night")) {
 
-            return true;
+                if (werewolf.isDayTime()) return false;
+
+                // Beast Hunter trap
+                if (werewolf.getPlayersRoles().get(player) == WerewolfRoles.BEAST_HUNTER && !werewolf.getTrappedPlayers().isEmpty()) {
+
+                    werewolf.beastHunterActivateTrap();
+
+                    player.sendMessage(Louise.PREFIX + "§aThe trap has been activated !");
+                }
+
+                werewolf.sleepPlayer(player);
+
+                return true;
+            }
+
+            else {
+
+                player.sendMessage(LouiseGlobal.wrongCommand());
+                return false;
+            }
         }
 
         //
@@ -82,18 +107,43 @@ public class WerewolfCommand implements CommandExecutor {
 
             if (!werewolf.isDayTime()) return false;
 
-            Player player1 = Bukkit.getPlayer(strings[1]);
-
-            if (player1 == null) {
-
-                player.sendMessage(Louise.PREFIX + "§cThe player §4" + strings[1] + " §cdoesn't exist.");
-                return false;
-            }
-
             if (strings[2].equalsIgnoreCase("vote")) {
 
-                // TODO: Implement village vote command
+                if (!werewolf.isVotingTime()) {
 
+                    player.sendMessage(Louise.PREFIX + "§cYou can't vote now !");
+                    return true;
+                }
+
+                if (werewolf.getPlayersRoles().get(player).equals(WerewolfRoles.VILLAGE_IDIOT) && werewolf.isVillageIdiotVoted()) {
+                    player.sendMessage(Louise.PREFIX + "§cAn idiot can't vote !");
+                    return true;
+                }
+
+                Player player1 = Bukkit.getPlayer(strings[1]);
+
+                if (player1 == null) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThe player §4" + strings[1] + " §cdoesn't exist.");
+                    return false;
+                }
+
+                if (player1 == player) {
+
+                    player.sendMessage(Louise.PREFIX + "§cYou can't vote for yourself !");
+                    return false;
+                }
+
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cYou really want to vote for a dead player ?");
+                    return true;
+                }
+
+                werewolf.vote(player, player1);
+
+                player.sendMessage(Louise.PREFIX + "§aYou voted for §7" + player1.getName() + "§a.");
+                return true;
             }
 
             else if (strings[2].equalsIgnoreCase("mayor")) {
@@ -182,6 +232,12 @@ public class WerewolfCommand implements CommandExecutor {
                     return false;
                 }
 
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
+                }
+
                 WerewolfRoles role = werewolf.seerCheck(player, player1);
 
                 player.sendMessage(Louise.PREFIX + "§a" + player1.getName() + " §7is a §a" + role.getName() + "§7.");
@@ -208,6 +264,12 @@ public class WerewolfCommand implements CommandExecutor {
 
                     player.sendMessage(Louise.PREFIX + "§cThe player §4" + strings[2] + " §cdoesn't exist.");
                     return false;
+                }
+
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
                 }
 
                 werewolf.salvatoreProtect(player, player1);
@@ -238,6 +300,12 @@ public class WerewolfCommand implements CommandExecutor {
                     return false;
                 }
 
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
+                }
+
                 werewolf.beastHunterSetTrap(player, player1);
 
                 player.sendMessage(Louise.PREFIX + "§aYou placed a trap on §7" + player1.getName() + "§a.");
@@ -258,17 +326,31 @@ public class WerewolfCommand implements CommandExecutor {
 
             if (strings[1].equalsIgnoreCase("kill")) {
 
-                Player player1 = Bukkit.getPlayer(strings[2]);
+                Player target = Bukkit.getPlayer(strings[2]);
 
-                if (player1 == null) {
+                if (target == null) {
 
                     player.sendMessage(Louise.PREFIX + "§cThe player §4" + strings[2] + " §cdoesn't exist.");
                     return false;
                 }
 
-                // TODO: Implement werewolf kill command
+                if (werewolf.isSpectator(target)) {
 
-                werewolf.sleepPlayer(player);
+                    player.sendMessage(Louise.PREFIX + "§cThis player is already dead !");
+                    return true;
+                }
+
+                List<Player> werewolves = new ArrayList<>();
+
+                for (Player werewolf1 : werewolf.getPlayersRoles().keySet()) {
+                    if (werewolf.getPlayersRoles().get(werewolf1).equals(WerewolfRoles.WEREWOLF) || werewolf.getPlayersRoles().get(werewolf1).equals(WerewolfRoles.WOLF_SEER)) {
+                        werewolves.add(werewolf1);
+                    }
+                }
+
+                werewolf.werewolfKill(player, target);
+
+                werewolves.forEach(werewolf1 -> werewolf1.sendMessage(Louise.PREFIX + "§b" + player.getName() + " §7voted for §b" + target.getName() + "§7."));
 
                 return true;
             }
@@ -284,6 +366,12 @@ public class WerewolfCommand implements CommandExecutor {
 
             if (strings[1].equalsIgnoreCase("save")) {
 
+                if (werewolf.getWitchPotions().containsKey(false)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cYou already used your save potion.");
+                    return false;
+                }
+
                 Player player1 = Bukkit.getPlayer(strings[2]);
 
                 if (player1 == null) {
@@ -292,9 +380,15 @@ public class WerewolfCommand implements CommandExecutor {
                     return false;
                 }
 
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
+                }
+
                 werewolf.witchSave(player, player1);
 
-                player.sendMessage(Louise.PREFIX + "§aYou saved §7" + player1.getName() + "§a.");
+                player.sendMessage(Louise.PREFIX + "§aYou protected §7" + player1.getName() + "§a.");
 
                 werewolf.sleepPlayer(player);
 
@@ -303,6 +397,12 @@ public class WerewolfCommand implements CommandExecutor {
 
             if (strings[1].equalsIgnoreCase("kill")) {
 
+                if (werewolf.getWitchPotions().containsValue(false)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cYou already used your kill potion.");
+                    return false;
+                }
+
                 Player player1 = Bukkit.getPlayer(strings[2]);
 
                 if (player1 == null) {
@@ -311,11 +411,86 @@ public class WerewolfCommand implements CommandExecutor {
                     return false;
                 }
 
+                if (werewolf.isSpectator(player1)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
+                }
+
+                if (player1 == player) {
+
+                    player.sendMessage(Louise.PREFIX + "§cYou can't kill yourself.");
+                    return false;
+                }
+
                 werewolf.witchKill(player, player1);
 
                 player.sendMessage(Louise.PREFIX + "§aYou killed §7" + player1.getName() + "§a.");
 
                 werewolf.sleepPlayer(player);
+
+                return true;
+            }
+        }
+
+        //
+        // Hunter command
+        //
+        if (strings[0].equalsIgnoreCase("hunter") && (werewolf.getPlayersRoles().get(player).equals(WerewolfRoles.HUNTER))) {
+
+            if (!werewolf.isDayTime()) return false;
+
+            if (strings[1].equalsIgnoreCase("kill")) {
+
+                if (!werewolf.isHunterVoted()) {
+                    player.sendMessage(Louise.PREFIX + "§cYou can't use this command now !");
+                    return true;
+                }
+
+                Player target = Bukkit.getPlayer(strings[2]);
+
+                if (target == null) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThe player §4" + strings[2] + " §cdoesn't exist.");
+                    return false;
+                }
+
+                if (werewolf.isSpectator(target)) {
+
+                    player.sendMessage(Louise.PREFIX + "§cThis player is dead.");
+                    return true;
+                }
+
+                werewolf.eliminatePlayer(target);
+
+                if (werewolf.isLoverDead(target)) {
+
+                    for (Map.Entry<Player, WerewolfRoles> entry : werewolf.getPlayersRoles().entrySet()) {
+                        if (entry.getValue().getRole2() == WerewolfRoles.LOVER && !entry.getKey().equals(target)) {
+
+                            werewolf.getPlayers().forEach(player1 -> {
+
+                                player1.sendMessage(Louise.PREFIX + "§c" + target.getName() + " was shot by the hunter !");
+                                player1.sendMessage(Louise.PREFIX + "§c" + werewolf.getPlayersRoles().get(target).getName() + " was a " + werewolf.getPlayersRoles().get(target).getName() + " !");
+
+                                player1.sendMessage(Louise.PREFIX + "§cUnfortunately, " + entry.getKey().getName() + " was in love with " + target.getName() + " !");
+
+                                player1.sendMessage(Louise.PREFIX + "§cSo " + entry.getKey().getName() + " died of a broken heart !");
+                                player1.sendMessage(Louise.PREFIX + "§c" + entry.getKey().getName() + " was a " + entry.getValue().getName() + " !");
+                            });
+
+                            werewolf.eliminatePlayer(entry.getKey());
+                            return true;
+                        }
+                    }
+                }
+
+                werewolf.getPlayers().forEach(player1 -> {
+
+                    player1.sendMessage(Louise.PREFIX + "§cThe hunter §4" + player.getName() + " §7shot on §c" + target.getName() + "§7.");
+                    player1.sendMessage(Louise.PREFIX + "§c" + target.getName() + " §7was eliminated.");
+                    player1.sendMessage(Louise.PREFIX + "§c" + target.getName() + " §7was a §c" + werewolf.getPlayersRoles().get(target).getName() + "§7.");
+                });
 
                 return true;
             }

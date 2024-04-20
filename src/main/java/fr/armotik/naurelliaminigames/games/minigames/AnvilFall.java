@@ -134,7 +134,6 @@ public class AnvilFall extends MiniGame{
         });
     }
 
-
     private void dropAnvils(int percentage) {
         int anvilCount = (int) ((percentage / 100.0) * SIZE_X * SIZE_Z);
         for (int i = 0; i < anvilCount; i++) {
